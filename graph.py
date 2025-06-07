@@ -1,6 +1,9 @@
 import random
 import networkx as nx
 import matplotlib.pyplot as plt
+import heapq
+import os
+import datetime
 
 class Graph:
     def __init__(self):
@@ -22,14 +25,39 @@ class Graph:
         for row in self.matrix:
             print(["x" if x is None else x for x in row])
 
+    def dijkstra(self, start: int):
+        """Алгоритм Дейкстры от вершины start. Возвращает расстояния и предков."""
+
+        dist = [float('inf')] * self.size
+        prev = [None] * self.size
+        dist[start] = 0
+
+        visited = [False] * self.size
+        heap = [(0, start)]  # (расстояние, вершина)
+
+        while heap:
+            current_dist, u = heapq.heappop(heap)
+            if visited[u]:
+                continue
+            visited[u] = True
+
+            # Проходим только по выходящим рёбрам
+            for v, weight in self.get_neighbors(u):
+                if not visited[v] and dist[u] + weight < dist[v]:
+                    dist[v] = dist[u] + weight
+                    prev[v] = u
+                    heapq.heappush(heap, (dist[v], v))
+
+        return dist, prev
+
     def draw_graph(self):
         """Отрисовка ориентированного графа без петель и кратных рёбер"""
 
         size = self.size
-        G = nx.DiGraph()  # ОРИЕНТИРОВАННЫЙ граф
+        G = nx.DiGraph()
         G.add_nodes_from(range(size))
 
-        # Сбор рёбер из верхней диагонали
+
         for i in range(size):
             for j in range(i + 1, size):
                 weight = self.matrix[i][j]
@@ -38,15 +66,18 @@ class Graph:
 
         pos = nx.circular_layout(G)
 
-        # Рисуем вершины
         nx.draw_networkx_nodes(G, pos, node_color='lightblue', node_size=400)
         nx.draw_networkx_labels(G, pos, font_size=12)
 
-        # Рисуем рёбра с весами
         nx.draw_networkx_edges(G, pos, edge_color='gray', arrows=True, arrowsize=20, width=1.5)
         edge_labels = nx.get_edge_attributes(G, 'weight')
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
 
         plt.title("Ориентированный граф")
         plt.axis('off')
-        plt.show()
+        plt.tight_layout()
+
+        # Сохраняем в ту же папку, где запускается main.py
+        save_path = os.path.join(os.getcwd(), "graph.jpg")
+        plt.savefig(save_path, dpi=300)
+        plt.close()
